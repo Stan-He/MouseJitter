@@ -28,6 +28,9 @@ class MouseJitter(object):
 
     def start_countdown(self):
         """启动倒计时"""
+        if not self._alive:  # 如果程序正在关闭，不继续更新
+            return
+            
         # 先显示当前数字
         self.countdown_label.config(text=str(self.countdown))
         
@@ -35,13 +38,15 @@ class MouseJitter(object):
             # 减少计数
             self.countdown -= 1
             # 安排下一次更新
-            self.root.after(1000, self.start_countdown)
+            if self._alive:  # 再次检查是否正在关闭
+                self.root.after(1000, self.start_countdown)
         else:
             # 倒计时结束，移动鼠标并重置
             self.move_mouse(self.random_value(), self.random_value())
             self.countdown = 120
             # 立即开始新的倒计时
-            self.start_countdown()
+            if self._alive:  # 再次检查是否正在关闭
+                self.start_countdown()
 
     def _setup_gui(self, w, h):
         self.root = Tkinter.Tk()
@@ -71,11 +76,10 @@ class MouseJitter(object):
         self.root.mainloop()
 
     def click_exit(self, *args):
-        self._alive = False
+        self._alive = False  # 设置标志，停止所有更新
+        self.root.after(100, self.root.destroy)  # 延迟销毁窗口，确保所有操作都已完成
         if self.thrd and self.thrd.is_alive():
             self.thrd.join()
-        self.root.destroy()
-        self.root.quit()
 
     def _start_thread(self):        
         self.thrd = threading.Thread(target=self.worker)
